@@ -13,50 +13,72 @@ class AccidentDetectionService extends ChangeNotifier {
 
   // The timestamp when a high G-force was detected
   DateTime? _lastGForceSpikeTime;
-  
+
   // To track speed drops
   double _lastSpeedKmph = 0.0;
-  DateTime? _lastSpeedTime;
+  DateTime? _lastSpeedDropTime;
 
   // Constants
-  static const double gForceThreshold = 3.0 * 9.81; // 3G in m/s^2 
-  static const double speedDropThresholdKmph = 25.0; // kmph
-  static const int triggerWindowSeconds = 3; 
+  static const double gForceThreshold = 3.0 * 9.81; // 3G in m/s^2
+  static const double highSpeedThresholdKmph = 30.0; // must have been above this
+  static const double lowSpeedThresholdKmph = 5.0; // must drop to near this
+  static const int triggerWindowSeconds = 3;
 
   void startMonitoring() {
-    // Monitor Accelerometer (User G-Forces excluding gravity)
-    _accelerometerSubscription = userAccelerometerEventStream().listen((event) {
-      double gForce = sqrt(pow(event.x, 2) + pow(event.y, 2) + pow(event.z, 2));
-      
-      if (gForce > gForceThreshold) {
-        _lastGForceSpikeTime = DateTime.now();
-        _checkTriggers();
-      }
-    });
+    // Avoid duplicate subscriptions
+    _accelerometerSubscription?.cancel();
+    _positionSubscription?.cancel();
 
-    // Monitor Speed via GPS
-    _positionSubscription = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 10),
-    ).listen((Position position) {
-      double currentSpeedKmph = position.speed * 3.6; // convert m/s to km/h
-      
-      if (_lastSpeedTime != null) {
-        double speedDrop = _lastSpeedKmph - currentSpeedKmph;
-        if (speedDrop > speedDropThresholdKmph) {
-          // If speed drops significantly, evaluate
+    // Monitor Accelerometer (User G-Forces excluding gravity)
+    try {
+      _accelerometerSubscription =
+          userAccelerometerEventStream().listen((event) {
+        double gForce =
+            sqrt(pow(event.x, 2) + pow(event.y, 2) + pow(event.z, 2));
+
+        if (gForce > gForceThreshold) {
+          _lastGForceSpikeTime = DateTime.now();
+          debugPrint(
+              '[AccidentDetection] G-force spike detected: ${(gForce / 9.81).toStringAsFixed(1)}G');
           _checkTriggers();
         }
-      }
+      });
+    } catch (e) {
+      debugPrint('[AccidentDetection] Accelerometer not available: $e');
+    }
 
-      _lastSpeedKmph = currentSpeedKmph;
-      _lastSpeedTime = DateTime.now();
-    });
+    // Monitor Speed via GPS
+    try {
+      _positionSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.best, distanceFilter: 10),
+      ).listen((Position position) {
+        double currentSpeedKmph =
+            position.speed * 3.6; // convert m/s to km/h
+
+        // Check for sudden speed drop: was going >30 km/h, now near 0
+        if (_lastSpeedKmph > highSpeedThresholdKmph &&
+            currentSpeedKmph < lowSpeedThresholdKmph) {
+          _lastSpeedDropTime = DateTime.now();
+          debugPrint(
+              '[AccidentDetection] Speed drop detected: ${_lastSpeedKmph.toStringAsFixed(0)} → ${currentSpeedKmph.toStringAsFixed(0)} km/h');
+          _checkTriggers();
+        }
+
+        _lastSpeedKmph = currentSpeedKmph;
+      });
+    } catch (e) {
+      debugPrint('[AccidentDetection] GPS stream not available: $e');
+    }
   }
 
   void _checkTriggers() {
-    if (_lastGForceSpikeTime != null && _lastSpeedTime != null) {
-      final difference = _lastSpeedTime!.difference(_lastGForceSpikeTime!).inSeconds.abs();
+    if (_lastGForceSpikeTime != null && _lastSpeedDropTime != null) {
+      final difference =
+          _lastSpeedDropTime!.difference(_lastGForceSpikeTime!).inSeconds.abs();
       if (difference <= triggerWindowSeconds && !_isAccidentDetected) {
+        debugPrint(
+            '[AccidentDetection] ACCIDENT DETECTED! Both triggers within $difference seconds.');
         _triggerAccidentDetected();
       }
     }
@@ -70,11 +92,20 @@ class AccidentDetectionService extends ChangeNotifier {
   void resetDetection() {
     _isAccidentDetected = false;
     _lastGForceSpikeTime = null;
+    _lastSpeedDropTime = null;
     notifyListeners();
   }
 
   void stopMonitoring() {
     _accelerometerSubscription?.cancel();
+    _accelerometerSubscription = null;
     _positionSubscription?.cancel();
+    _positionSubscription = null;
+  }
+
+  @override
+  void dispose() {
+    stopMonitoring();
+    super.dispose();
   }
 }

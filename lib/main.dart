@@ -11,7 +11,7 @@ import 'utils/constants.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Load environment variables safely
   try {
     await dotenv.load(fileName: ".env");
@@ -20,9 +20,11 @@ Future<void> main() async {
   }
 
   bool isSignedUp = false;
+  String savedLocale = 'en';
   try {
     final prefs = await SharedPreferences.getInstance();
     isSignedUp = prefs.getBool('isSignedUp') ?? false;
+    savedLocale = prefs.getString('language') ?? 'en';
   } catch (e) {
     debugPrint("Error reading SharedPreferences: $e");
   }
@@ -32,14 +34,16 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AccidentDetectionService()),
       ],
-      child: RoadSoSApp(isSignedUp: isSignedUp),
+      child: RoadSoSApp(isSignedUp: isSignedUp, locale: savedLocale),
     ),
   );
 }
 
 class RoadSoSApp extends StatelessWidget {
   final bool isSignedUp;
-  const RoadSoSApp({Key? key, required this.isSignedUp}) : super(key: key);
+  final String locale;
+  const RoadSoSApp({Key? key, required this.isSignedUp, required this.locale})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +59,7 @@ class RoadSoSApp extends StatelessWidget {
         ),
         fontFamily: 'Roboto', // Default fallback
       ),
+      locale: Locale(locale, ''),
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -64,6 +69,13 @@ class RoadSoSApp extends StatelessWidget {
         Locale('en', ''), // English
         Locale('hi', ''), // Hindi
         Locale('ta', ''), // Tamil
+        Locale('te', ''), // Telugu
+        Locale('kn', ''), // Kannada
+        Locale('ml', ''), // Malayalam
+        Locale('bn', ''), // Bengali
+        Locale('mr', ''), // Marathi
+        Locale('gu', ''), // Gujarati
+        Locale('pa', ''), // Punjabi
       ],
       home: isSignedUp ? const HomeScreen() : const SignupScreen(),
     );

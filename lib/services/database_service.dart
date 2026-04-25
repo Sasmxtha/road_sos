@@ -109,6 +109,42 @@ class DatabaseService {
     await db.delete('services');
   }
 
+  Future<void> clearServicesByType(String type) async {
+    final db = await database;
+    await db.delete('services', where: 'type = ?', whereArgs: [type]);
+  }
+
+  Future<List<EmergencyService>> getServicesByType(String type) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'services',
+      where: 'type = ?',
+      whereArgs: [type],
+    );
+    return List.generate(maps.length, (i) => EmergencyService.fromMap(maps[i]));
+  }
+
+  Future<EmergencyService?> getNearestService(
+      String type, double userLat, double userLon) async {
+    final services = await getServicesByType(type);
+    if (services.isEmpty) return null;
+
+    EmergencyService? nearest;
+    double minDist = double.infinity;
+
+    for (final s in services) {
+      // Simple Euclidean approximation (fine for short distances)
+      final dlat = (s.latitude - userLat) * 111000; // ~111km per degree
+      final dlon = (s.longitude - userLon) * 111000 * 0.7; // rough cos correction
+      final dist = (dlat * dlat + dlon * dlon);
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = s;
+      }
+    }
+    return nearest;
+  }
+
   // --- Contacts operations ---
   Future<void> insertContact(EmergencyContact contact) async {
     final db = await database;
