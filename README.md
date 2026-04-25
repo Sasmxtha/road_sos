@@ -176,4 +176,5 @@ The app requires the following permissions (configured in `AndroidManifest.xml`)
 
 ## Team
 
+**Name:** Felix_felicis
 **Hackathon:** Road Safety Hackathon 2026, CoERS, IIT Madras
