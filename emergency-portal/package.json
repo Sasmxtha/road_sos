@@ -1,0 +1,14 @@
+{
+  "name": "roadsos-emergency-portal",
+  "version": "1.0.0",
+  "description": "RoadSOS — Real-time emergency assistance map portal",
+  "scripts": {
+    "start": "serve . --listen $PORT"
+  },
+  "dependencies": {
+    "serve": "^14.2.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
