@@ -1,0 +1,22 @@
+{
+  "rules": {
+    "responders": {
+      "$uid": {
+        // Anyone can read live responder positions
+        ".read": true,
+        // Only the responder who owns this entry can write
+        // (for a demo/hackathon, allow all writes — tighten in production)
+        ".write": true,
+        ".validate": "newData.hasChildren(['name','type','lat','lng','active','ts'])",
+        "lat":    { ".validate": "newData.isNumber() && newData.val() >= -90  && newData.val() <= 90"  },
+        "lng":    { ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180" },
+        "active": { ".validate": "newData.isBoolean()" },
+        "ts":     { ".validate": "newData.isNumber()" },
+        "name":   { ".validate": "newData.isString() && newData.val().length <= 80" },
+        "type":   { ".validate": "newData.isString()" }
+      }
+    },
+    // Block all other paths by default
+    "$other": { ".read": false, ".write": false }
+  }
+}

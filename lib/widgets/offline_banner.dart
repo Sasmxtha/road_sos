@@ -12,16 +12,33 @@ class OfflineBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: AppColors.warningOrange,
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: const Row(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.accentOrange.withOpacity(0.15),
+            AppColors.accentOrange.withOpacity(0.08),
+          ],
+        ),
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.accentOrange.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.wifi_off, color: AppColors.white, size: 16),
-          SizedBox(width: 8),
+          Icon(Icons.wifi_off, color: AppColors.accentOrange, size: 16),
+          const SizedBox(width: 8),
           Text(
-            'Offline Mode - Using Cached Services',
-            style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+            'Offline Mode — Using Cached Services',
+            style: TextStyle(
+              color: AppColors.accentOrange,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
           ),
         ],
       ),

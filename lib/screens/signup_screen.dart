@@ -7,69 +7,36 @@ import 'home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
-
   @override
   _SignupScreenState createState() => _SignupScreenState();
 }
 
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
-  
-  // User profile fields
-  String _name = '';
-  String _contact = '';
-  String _aadhaar = '';
-  
-  // Emergency contact fields
-  String _emName = '';
-  String _emContact = '';
-
+  String _name = '', _contact = '', _aadhaar = '', _emName = '', _emContact = '';
   final _dbService = DatabaseService();
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      
-      // Save User Profile
-      await _dbService.saveUserProfile({
-        'name': _name,
-        'contact': _contact,
-        'aadhaar': _aadhaar,
-      });
-
-      // Save Initial Emergency Contact
-      await _dbService.insertContact(EmergencyContact(
-        name: _emName,
-        phoneNumber: _emContact,
-      ));
-
-      // Mark as signed up
+      await _dbService.saveUserProfile({'name': _name, 'contact': _contact, 'aadhaar': _aadhaar});
+      await _dbService.insertContact(EmergencyContact(name: _emName, phoneNumber: _emContact));
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isSignedUp', true);
-
-      // Navigate to Home
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
-      }
+      if (mounted) Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
     }
   }
 
-  /// Validates Indian mobile numbers (10 digits starting with 6-9)
   String? _validatePhone(String? value) {
     if (value == null || value.trim().isEmpty) return 'Please enter phone number';
     String cleaned = value.replaceAll(RegExp(r'[\s\-\(\)]'), '');
     if (cleaned.startsWith('+91')) cleaned = cleaned.substring(3);
     if (cleaned.startsWith('91') && cleaned.length == 12) cleaned = cleaned.substring(2);
-    if (cleaned.length != 10) return 'Enter a valid 10-digit mobile number';
-    if (!RegExp(r'^[6-9][0-9]{9}$').hasMatch(cleaned)) {
-      return 'Mobile number must start with 6, 7, 8 or 9';
-    }
+    if (cleaned.length != 10) return 'Enter a valid 10-digit number';
+    if (!RegExp(r'^[6-9][0-9]{9}$').hasMatch(cleaned)) return 'Must start with 6, 7, 8 or 9';
     return null;
   }
 
-  /// Cleans phone number to 10 digits
   String _cleanPhone(String phone) {
     String cleaned = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
     if (cleaned.startsWith('+91')) cleaned = cleaned.substring(3);
@@ -77,34 +44,24 @@ class _SignupScreenState extends State<SignupScreen> {
     return cleaned;
   }
 
-  Widget _buildTextField(String label, Function(String?) onSave, 
-      {TextInputType type = TextInputType.text, 
-       String? Function(String?)? customValidator,
-       int? maxLength,
-       String? prefixText,
-       String? hintText}) {
+  Widget _buildField(String label, Function(String?) onSave,
+      {TextInputType type = TextInputType.text, String? Function(String?)? customValidator,
+       int? maxLength, String? prefixText, String? hintText}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
+        style: const TextStyle(color: AppColors.textPrimary),
         decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          filled: true,
-          fillColor: Colors.white,
-          prefixText: prefixText,
-          hintText: hintText,
+          labelText: label, labelStyle: TextStyle(color: AppColors.textTertiary),
+          filled: true, fillColor: AppColors.darkCard,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.primaryRed, width: 1.5)),
+          prefixText: prefixText, prefixStyle: TextStyle(color: AppColors.textSecondary),
+          hintText: hintText, hintStyle: TextStyle(color: AppColors.textTertiary.withOpacity(0.5)),
           counterText: '',
         ),
-        keyboardType: type,
-        maxLength: maxLength,
-        validator: customValidator ?? (value) {
-          if (value == null || value.trim().isEmpty) {
-            return 'Please enter $label';
-          }
-          return null;
-        },
+        keyboardType: type, maxLength: maxLength,
+        validator: customValidator ?? (value) => (value == null || value.trim().isEmpty) ? 'Please enter $label' : null,
         onSaved: onSave,
       ),
     );
@@ -113,73 +70,71 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('RoadSoS Setup'),
-        backgroundColor: AppColors.primaryRed,
-        foregroundColor: Colors.white,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Welcome to RoadSoS', style: AppTextStyles.header),
-              const SizedBox(height: 10),
-              const Text('Please complete your profile to enable emergency features.', style: AppTextStyles.body),
-              const SizedBox(height: 20),
-              
+      backgroundColor: AppColors.darkBg,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(key: _formKey, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(gradient: AppColors.sosGradient, borderRadius: BorderRadius.circular(16)),
+              child: Row(children: [
+                const Icon(Icons.emergency, color: Colors.white, size: 32),
+                const SizedBox(width: 12),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+                  Text('RoadSoS', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.5)),
+                  Text('Emergency Setup', style: TextStyle(fontSize: 14, color: Colors.white70)),
+                ]),
+              ]),
+            ),
+            const SizedBox(height: 24),
+            Text('Complete your profile to enable\nemergency features.', style: TextStyle(color: AppColors.textSecondary, fontSize: 15)),
+            const SizedBox(height: 24),
+
+            Row(children: [
+              Container(width: 3, height: 16, decoration: BoxDecoration(color: AppColors.accentBlue, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(width: 8),
               const Text('Personal Details', style: AppTextStyles.subheader),
-              _buildTextField('Full Name', (val) => _name = val!),
-              _buildTextField('Your Contact Number', 
-                (val) => _contact = '+91${_cleanPhone(val!)}', 
-                type: TextInputType.phone,
-                customValidator: _validatePhone,
-                maxLength: 10,
-                prefixText: '+91 ',
-                hintText: '9876543210',
-              ),
-              _buildTextField('Aadhaar Number', (val) => _aadhaar = val!, 
-                type: TextInputType.number,
-                maxLength: 12,
-                hintText: '1234 5678 9012',
-                customValidator: (value) {
-                  if (value == null || value.trim().isEmpty) return 'Please enter Aadhaar number';
-                  final cleaned = value.replaceAll(' ', '');
-                  if (cleaned.length != 12 || !RegExp(r'^[0-9]{12}$').hasMatch(cleaned)) {
-                    return 'Aadhaar must be a 12-digit number';
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: 20),
-              const Text('Primary Emergency Contact', style: AppTextStyles.subheader),
-              const Text('This contact will receive SMS alerts when you press SOS.', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              const SizedBox(height: 10),
-              _buildTextField('Contact Name', (val) => _emName = val!),
-              _buildTextField('Contact Number', 
-                (val) => _emContact = '+91${_cleanPhone(val!)}',
-                type: TextInputType.phone,
-                customValidator: _validatePhone,
-                maxLength: 10,
-                prefixText: '+91 ',
-                hintText: '9876543210',
-              ),
-              
-              const SizedBox(height: 30),
-              ElevatedButton(
+            ]),
+            const SizedBox(height: 8),
+            _buildField('Full Name', (val) => _name = val!),
+            _buildField('Your Contact Number', (val) => _contact = '+91${_cleanPhone(val!)}',
+              type: TextInputType.phone, customValidator: _validatePhone, maxLength: 10, prefixText: '+91 ', hintText: '9876543210'),
+            _buildField('Aadhaar Number', (val) => _aadhaar = val!,
+              type: TextInputType.number, maxLength: 12, hintText: '1234 5678 9012',
+              customValidator: (value) {
+                if (value == null || value.trim().isEmpty) return 'Please enter Aadhaar';
+                final cleaned = value.replaceAll(' ', '');
+                if (cleaned.length != 12 || !RegExp(r'^[0-9]{12}$').hasMatch(cleaned)) return 'Must be 12 digits';
+                return null;
+              }),
+
+            const SizedBox(height: 20),
+            Row(children: [
+              Container(width: 3, height: 16, decoration: BoxDecoration(color: AppColors.accentGreen, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(width: 8),
+              const Text('Emergency Contact', style: AppTextStyles.subheader),
+            ]),
+            const SizedBox(height: 4),
+            Text('This contact receives SMS & WhatsApp SOS alerts.', style: TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+            const SizedBox(height: 8),
+            _buildField('Contact Name', (val) => _emName = val!),
+            _buildField('Contact Number', (val) => _emContact = '+91${_cleanPhone(val!)}',
+              type: TextInputType.phone, customValidator: _validatePhone, maxLength: 10, prefixText: '+91 ', hintText: '9876543210'),
+
+            const SizedBox(height: 28),
+            Container(
+              decoration: BoxDecoration(gradient: AppColors.sosGradient, borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(color: AppColors.primaryRed.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))]),
+              child: ElevatedButton(
                 onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Text('Complete Setup', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                child: const Text('Complete Setup', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
               ),
-            ],
-          ),
+            ),
+          ])),
         ),
       ),
     );

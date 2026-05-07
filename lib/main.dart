@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -12,7 +13,14 @@ import 'utils/constants.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables safely
+  // Dark status bar
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: AppColors.darkSurface,
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
+
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
@@ -51,13 +59,41 @@ class RoadSoSApp extends StatelessWidget {
       title: 'RoadSoS',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        brightness: Brightness.dark,
         primaryColor: AppColors.primaryRed,
-        scaffoldBackgroundColor: AppColors.lightGrey,
-        colorScheme: ColorScheme.fromSwatch().copyWith(
+        scaffoldBackgroundColor: AppColors.darkBg,
+        colorScheme: const ColorScheme.dark(
           primary: AppColors.primaryRed,
-          secondary: AppColors.darkGrey,
+          secondary: AppColors.accentBlue,
+          surface: AppColors.darkSurface,
+          error: AppColors.primaryRed,
         ),
-        fontFamily: 'Roboto', // Default fallback
+        fontFamily: 'Roboto',
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.darkSurface,
+          foregroundColor: AppColors.textPrimary,
+          elevation: 0,
+        ),
+        cardTheme: CardThemeData(
+          color: AppColors.darkCard,
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: AppColors.darkCard,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: AppColors.darkCard,
+          contentTextStyle: const TextStyle(color: AppColors.textPrimary),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          behavior: SnackBarBehavior.floating,
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: AppColors.darkSurface,
+          selectedItemColor: AppColors.primaryRed,
+          unselectedItemColor: AppColors.textTertiary,
+        ),
       ),
       locale: Locale(locale, ''),
       localizationsDelegates: const [
@@ -66,16 +102,10 @@ class RoadSoSApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('en', ''), // English
-        Locale('hi', ''), // Hindi
-        Locale('ta', ''), // Tamil
-        Locale('te', ''), // Telugu
-        Locale('kn', ''), // Kannada
-        Locale('ml', ''), // Malayalam
-        Locale('bn', ''), // Bengali
-        Locale('mr', ''), // Marathi
-        Locale('gu', ''), // Gujarati
-        Locale('pa', ''), // Punjabi
+        Locale('en', ''), Locale('hi', ''), Locale('ta', ''),
+        Locale('te', ''), Locale('kn', ''), Locale('ml', ''),
+        Locale('bn', ''), Locale('mr', ''), Locale('gu', ''),
+        Locale('pa', ''),
       ],
       home: isSignedUp ? const HomeScreen() : const SignupScreen(),
     );
